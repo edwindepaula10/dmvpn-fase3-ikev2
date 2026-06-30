@@ -1,0 +1,46 @@
+enable
+configure terminal
+hostname SPOKE1
+interface GigabitEthernet1
+ ip address 10.24.15.6 255.255.255.252
+ no shutdown
+interface GigabitEthernet2
+ ip address 192.168.15.1 255.255.255.0
+ no shutdown
+ip route 0.0.0.0 0.0.0.0 10.24.15.5
+crypto ikev2 proposal PROP-2415
+ encryption aes-cbc-256
+ integrity sha256
+ group 14
+crypto ikev2 policy POL-2415
+ proposal PROP-2415
+crypto ikev2 keyring KR-2415
+ peer HUB
+  address 10.24.15.1
+  pre-shared-key Edwin2024
+crypto ikev2 profile IKEV2-PROF-2415
+ match identity remote address 10.24.15.1 255.255.255.255
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local KR-2415
+crypto ipsec transform-set TS-2415 esp-aes 256 esp-sha256-hmac
+ mode transport
+crypto ipsec profile PROF-2415
+ set transform-set TS-2415
+ set ikev2-profile IKEV2-PROF-2415
+interface Tunnel0
+ ip address 172.24.15.2 255.255.255.0
+ no ip redirects
+ ip nhrp authentication Edwin2024
+ ip nhrp map 172.24.15.1 10.24.15.1
+ ip nhrp map multicast 10.24.15.1
+ ip nhrp network-id 2415
+ ip nhrp nhs 172.24.15.1
+ ip nhrp shortcut
+ tunnel source GigabitEthernet1
+ tunnel mode gre multipoint
+ tunnel protection ipsec profile PROF-2415
+router eigrp 2415
+ network 172.24.15.0 0.0.0.255
+ network 192.168.15.0 0.0.0.255
+ no auto-summary
